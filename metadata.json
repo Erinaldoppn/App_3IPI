@@ -1,0 +1,7 @@
+{
+  "name": "3IPI Igreja Connect",
+  "description": "Aplicativo oficial da Igreja 3IPI para gestão de membros, eventos, grupos e pedidos de oração.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
