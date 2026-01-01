@@ -45,14 +45,12 @@ const App: React.FC = () => {
   }, []);
 
   const fetchOrCreateProfile = async (userId: string, email: string) => {
-    // 1. Tenta buscar o perfil
     let { data, error } = await supabase
       .from('perfis')
       .select('*')
       .eq('id', userId)
       .single();
     
-    // 2. Se não existir (erro P0001 ou PGRST116), cria um novo perfil básico
     if (error && (error.code === 'PGRST116' || error.message.includes('row'))) {
       const { data: newData, error: insertError } = await supabase
         .from('perfis')
@@ -108,7 +106,7 @@ const App: React.FC = () => {
         >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/quem-somos" element={<About />} />
-          <Route path="/eventos" element={<Events />} />
+          <Route path="/eventos" element={<Events isAdmin={isAdmin} />} />
           <Route path="/grupos" element={<Groups />} />
           <Route path="/membros" element={<Members />} />
           <Route path="/fotos-videos" element={<Media isAdmin={isAdmin} />} />

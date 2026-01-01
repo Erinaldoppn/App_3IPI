@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ImageIcon, Play, Upload, Loader2, X, CheckCircle2, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { ImageIcon, Play, Upload, Loader2, X, CheckCircle2, AlertTriangle, ShieldAlert, FileText } from 'lucide-react';
 import { supabase } from '../supabase';
 import { MediaItem } from '../types';
 
@@ -37,6 +37,19 @@ const Media: React.FC<MediaProps> = ({ isAdmin = false }) => {
     }
   };
 
+  const getFileNameFromUrl = (url: string) => {
+    try {
+      const parts = url.split('/');
+      const lastPart = parts[parts.length - 1];
+      const nameWithoutParams = lastPart.split('?')[0];
+      // Tenta remover o hash aleatório se seguir o padrão do upload (hash-timestamp.ext)
+      const cleanName = nameWithoutParams.includes('-') ? nameWithoutParams.split('-').slice(1).join('-') : nameWithoutParams;
+      return cleanName || 'Arquivo';
+    } catch {
+      return 'Arquivo';
+    }
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -56,7 +69,9 @@ const Media: React.FC<MediaProps> = ({ isAdmin = false }) => {
       const isVideo = file.type.startsWith('video/');
       const type = isVideo ? 'video' : 'photo';
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      // Incluímos o nome original de forma segura no caminho para ajudar na extração posterior
+      const safeOriginalName = file.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}-${safeOriginalName}`;
       const filePath = `${type}s/${fileName}`;
 
       // 1. Upload para o Storage
@@ -183,8 +198,23 @@ const Media: React.FC<MediaProps> = ({ isAdmin = false }) => {
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
                 alt="3IPI Midia"
               />
+              
+              {/* Overlay central (Ícone no hover) */}
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 {item.type === 'video' ? <Play className="text-white fill-white" size={32} /> : <ImageIcon className="text-white" size={32} />}
+              </div>
+
+              {/* Título discreto na parte inferior */}
+              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-white/90 font-bold truncate leading-tight flex items-center mb-0.5">
+                    <FileText size={10} className="mr-1 opacity-70" />
+                    {getFileNameFromUrl(item.url)}
+                  </span>
+                  <span className={`text-[8px] font-black uppercase tracking-widest ${item.type === 'photo' ? 'text-brand-yellow/90' : 'text-blue-300/90'}`}>
+                    {item.type === 'photo' ? 'Foto' : 'Vídeo'}
+                  </span>
+                </div>
               </div>
             </div>
           ))}
