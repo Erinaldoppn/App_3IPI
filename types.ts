@@ -3,6 +3,11 @@ export interface Member {
   id: string;
   nome: string;
   foto_url: string;
+  data_nascimento?: string;
+  telefone?: string;
+  endereco?: string;
+  genero?: string;
+  estado_civil?: string;
   created_at: string;
 }
 
