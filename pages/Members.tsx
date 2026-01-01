@@ -142,6 +142,9 @@ const Members: React.FC = () => {
     m.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const inputClasses = "w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue text-gray-900 dark:text-white caret-brand-blue placeholder:text-gray-400 transition-all font-medium";
+  const selectClasses = "w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue text-gray-900 dark:text-white transition-all font-medium appearance-none";
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -165,7 +168,7 @@ const Members: React.FC = () => {
           placeholder="Pesquisar por nome..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue text-gray-900 dark:text-white transition-all shadow-sm"
+          className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue text-gray-900 dark:text-white caret-brand-blue transition-all shadow-sm"
         />
       </div>
 
@@ -201,7 +204,7 @@ const Members: React.FC = () => {
       {/* Modal de Cadastro */}
       {showAddModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/10">
             <div className="flex items-center justify-between p-6 border-b dark:border-gray-700 bg-brand-blue text-white">
               <h2 className="text-xl font-bold flex items-center">
                 <UsersIcon className="mr-2" /> Cadastro de Membro
@@ -217,7 +220,7 @@ const Members: React.FC = () => {
                 <div className="md:col-span-1 flex flex-col items-center justify-start space-y-4">
                   <div 
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-32 h-32 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-brand-blue transition-all overflow-hidden relative group"
+                    className="w-32 h-32 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-brand-blue transition-all overflow-hidden relative group bg-gray-50 dark:bg-gray-700"
                   >
                     {fotoPreview ? (
                       <img src={fotoPreview} className="w-full h-full object-cover" alt="Preview" />
@@ -232,77 +235,125 @@ const Members: React.FC = () => {
                     </div>
                   </div>
                   <input type="file" ref={fileInputRef} className="hidden" onChange={handleFotoChange} accept="image/*" />
-                  <p className="text-[10px] text-gray-400 font-medium text-center uppercase tracking-widest">Toque para alterar</p>
+                  <p className="text-[10px] text-gray-400 font-medium text-center uppercase tracking-widest">Clique para enviar</p>
                 </div>
 
                 {/* Campos de Texto */}
                 <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2 space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nome Completo</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Nome Completo</label>
                     <div className="relative">
                       <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                      <input required value={nome} onChange={(e) => setNome(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:border-brand-blue dark:text-white" placeholder="Nome do membro" />
+                      <input 
+                        required 
+                        value={nome} 
+                        onChange={(e) => setNome(e.target.value)} 
+                        className={inputClasses} 
+                        placeholder="Nome completo do membro" 
+                      />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nascimento</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Nascimento</label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                      <input type="date" required value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:border-brand-blue dark:text-white" />
+                      <input 
+                        type="date" 
+                        required 
+                        value={dataNascimento} 
+                        onChange={(e) => setDataNascimento(e.target.value)} 
+                        className={inputClasses} 
+                      />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Idade</label>
-                    <input readOnly value={idade} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl font-bold text-brand-blue" placeholder="-" />
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Idade</label>
+                    <input 
+                      readOnly 
+                      value={idade} 
+                      className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl font-bold text-brand-blue cursor-default" 
+                      placeholder="-" 
+                    />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Telefone</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Telefone</label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                      <input value={telefone} onChange={(e) => setTelefone(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:border-brand-blue dark:text-white" placeholder="(00) 00000-0000" />
+                      <input 
+                        value={telefone} 
+                        onChange={(e) => setTelefone(e.target.value)} 
+                        className={inputClasses} 
+                        placeholder="(00) 00000-0000" 
+                      />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Gênero</label>
-                    <select value={genero} onChange={(e) => setGenero(e.target.value)} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:border-brand-blue dark:text-white">
-                      <option value="">Selecione</option>
-                      <option value="Masculino">Masculino</option>
-                      <option value="Feminino">Feminino</option>
-                      <option value="Outro">Outro</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Estado Civil</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Gênero</label>
                     <div className="relative">
-                      <Heart className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                      <select value={estadoCivil} onChange={(e) => setEstadoCivil(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:border-brand-blue dark:text-white">
-                        <option value="">Selecione</option>
-                        <option value="Solteiro(a)">Solteiro(a)</option>
-                        <option value="Casado(a)">Casado(a)</option>
-                        <option value="Divorciado(a)">Divorciado(a)</option>
-                        <option value="Viúvo(a)">Viúvo(a)</option>
+                      <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" size={16} />
+                      <select 
+                        value={genero} 
+                        onChange={(e) => setGenero(e.target.value)} 
+                        className={selectClasses}
+                      >
+                        <option value="" className="dark:bg-gray-800">Selecione</option>
+                        <option value="Masculino" className="dark:bg-gray-800">Masculino</option>
+                        <option value="Feminino" className="dark:bg-gray-800">Feminino</option>
+                        <option value="Outro" className="dark:bg-gray-800">Outro</option>
                       </select>
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Endereço</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Estado Civil</label>
+                    <div className="relative">
+                      <Heart className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" size={16} />
+                      <select 
+                        value={estadoCivil} 
+                        onChange={(e) => setEstadoCivil(e.target.value)} 
+                        className={selectClasses}
+                      >
+                        <option value="" className="dark:bg-gray-800">Selecione</option>
+                        <option value="Solteiro(a)" className="dark:bg-gray-800">Solteiro(a)</option>
+                        <option value="Casado(a)" className="dark:bg-gray-800">Casado(a)</option>
+                        <option value="Divorciado(a)" className="dark:bg-gray-800">Divorciado(a)</option>
+                        <option value="Viúvo(a)" className="dark:bg-gray-800">Viúvo(a)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Endereço</label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                      <input value={endereco} onChange={(e) => setEndereco(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:border-brand-blue dark:text-white" placeholder="Rua, Número, Bairro" />
+                      <input 
+                        value={endereco} 
+                        onChange={(e) => setEndereco(e.target.value)} 
+                        className={inputClasses} 
+                        placeholder="Rua, Número, Bairro, Cidade" 
+                      />
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="pt-6 flex space-x-4">
-                <button type="button" onClick={() => { setShowAddModal(false); resetForm(); }} className="flex-1 py-4 font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all">Cancelar</button>
-                <button disabled={submitting} type="submit" className="flex-1 bg-brand-blue text-white py-4 rounded-xl font-bold shadow-lg shadow-brand-blue/20 flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50">
+                <button 
+                  type="button" 
+                  onClick={() => { setShowAddModal(false); resetForm(); }} 
+                  className="flex-1 py-4 font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  disabled={submitting} 
+                  type="submit" 
+                  className="flex-1 bg-brand-blue text-white py-4 rounded-xl font-bold shadow-lg shadow-brand-blue/20 flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
+                >
                   {submitting ? <Loader2 className="animate-spin" /> : <Plus size={20} />}
                   <span>{submitting ? 'Salvando...' : 'Finalizar Cadastro'}</span>
                 </button>

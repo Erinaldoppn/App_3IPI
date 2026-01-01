@@ -192,7 +192,7 @@ const Media: React.FC<MediaProps> = ({ isAdmin = false }) => {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filteredItems.map((item) => (
-            <div key={item.id} className="relative aspect-square rounded-2xl overflow-hidden group shadow-sm border border-gray-100 dark:border-gray-700">
+            <div key={item.id} className="relative aspect-square rounded-2xl overflow-hidden group shadow-sm hover:shadow-xl border border-gray-100 dark:border-gray-700 hover:border-brand-blue transition-all duration-300 cursor-pointer">
               <img 
                 src={item.type === 'photo' ? item.url : (item.thumbnail || item.url)} 
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
