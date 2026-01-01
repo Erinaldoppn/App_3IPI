@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ImageIcon, Play, Upload, Loader2, X, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ImageIcon, Play, Upload, Loader2, X, CheckCircle2, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { supabase } from '../supabase';
 import { MediaItem } from '../types';
 
@@ -13,7 +13,7 @@ const Media: React.FC<MediaProps> = ({ isAdmin = false }) => {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<{message: string, type: 'success' | 'error' | 'warning'} | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<{message: string, type: 'success' | 'error' | 'warning', debug?: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ const Media: React.FC<MediaProps> = ({ isAdmin = false }) => {
 
     if (!isAdmin) {
       setUploadStatus({ 
-        message: 'Você não tem permissão de administrador para realizar uploads.', 
+        message: 'Apenas administradores podem enviar arquivos.', 
         type: 'error' 
       });
       return;
@@ -64,7 +64,12 @@ const Media: React.FC<MediaProps> = ({ isAdmin = false }) => {
         .from('midia')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        if (uploadError.message.includes('row-level security')) {
+          throw new Error('Erro de RLS no Storage: Verifique se o bucket "midia" tem políticas de INSERT para administradores.');
+        }
+        throw uploadError;
+      }
 
       // 2. Obter URL pública
       const { data: { publicUrl } } = supabase.storage
@@ -81,26 +86,24 @@ const Media: React.FC<MediaProps> = ({ isAdmin = false }) => {
         }]);
 
       if (dbError) {
-        // Trata erro específico de RLS
-        if (dbError.message.includes('row-level security policy')) {
-          throw new Error('Permissão negada no banco de dados. Verifique se as políticas de RLS para a tabela "midia" foram configuradas corretamente para administradores.');
+        if (dbError.message.includes('row-level security')) {
+          throw new Error('Erro de RLS na Tabela: A mídía foi enviada ao Storage, mas não pôde ser registrada no banco. Execute as políticas SQL na tabela "midia".');
         }
         throw dbError;
       }
 
-      setUploadStatus({ message: 'Arquivo enviado com sucesso!', type: 'success' });
+      setUploadStatus({ message: 'Arquivo publicado com sucesso!', type: 'success' });
       fetchMedia();
     } catch (err: any) {
-      console.error('Erro no upload:', err);
+      console.error('Falha no processo:', err);
       setUploadStatus({ 
         message: err.message || 'Falha ao processar arquivo.', 
-        type: err.message.includes('Permissão') ? 'warning' : 'error' 
+        type: 'error',
+        debug: 'Dica: Verifique as políticas de RLS no painel do Supabase.'
       });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      // Mantém avisos de erro por mais tempo para o usuário ler
-      setTimeout(() => setUploadStatus(null), 6000);
     }
   };
 
@@ -109,11 +112,11 @@ const Media: React.FC<MediaProps> = ({ isAdmin = false }) => {
     : mediaItems.filter(item => item.type === (activeTab === 'photos' ? 'photo' : 'video'));
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Fotos & Vídeos</h1>
-          <p className="text-gray-500 dark:text-gray-400">Momentos marcantes da nossa igreja.</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Galeria 3IPI</h1>
+          <p className="text-gray-500 dark:text-gray-400">Fotos e vídeos de nossa comunidade.</p>
         </div>
         
         {isAdmin && (
@@ -128,84 +131,66 @@ const Media: React.FC<MediaProps> = ({ isAdmin = false }) => {
             <button 
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="flex items-center space-x-2 bg-brand-blue text-white px-6 py-3 rounded-xl hover:bg-brand-darkBlue transition-all font-bold shadow-lg shadow-brand-blue/20 disabled:opacity-50 active:scale-95"
+              className="flex items-center space-x-2 bg-brand-blue text-white px-6 py-3 rounded-xl hover:bg-brand-darkBlue transition-all font-bold shadow-lg shadow-brand-blue/20 disabled:opacity-50"
             >
               {uploading ? <Loader2 className="animate-spin" size={20} /> : <Upload size={20} />}
-              <span>{uploading ? 'Enviando...' : 'Importar Arquivo'}</span>
+              <span>{uploading ? 'Processando...' : 'Importar Arquivo'}</span>
             </button>
           </div>
         )}
       </div>
 
       {uploadStatus && (
-        <div className={`p-4 rounded-xl flex items-start justify-between animate-in slide-in-from-top-4 duration-300 border shadow-sm ${
-          uploadStatus.type === 'success' 
-            ? 'bg-green-50 text-green-800 border-green-100' 
-            : uploadStatus.type === 'warning'
-            ? 'bg-amber-50 text-amber-800 border-amber-100'
-            : 'bg-red-50 text-red-800 border-red-100'
+        <div className={`p-4 rounded-xl border animate-in slide-in-from-top-4 duration-300 ${
+          uploadStatus.type === 'success' ? 'bg-green-50 border-green-100 text-green-800' : 'bg-red-50 border-red-100 text-red-800'
         }`}>
-          <div className="flex items-start space-x-3">
-            <div className="mt-0.5">
-              {uploadStatus.type === 'success' && <CheckCircle2 size={20} />}
-              {uploadStatus.type === 'warning' && <AlertTriangle size={20} />}
-              {uploadStatus.type === 'error' && <X size={20} />}
+          <div className="flex items-start justify-between">
+            <div className="flex space-x-3">
+              {uploadStatus.type === 'error' ? <ShieldAlert className="shrink-0" size={24} /> : <CheckCircle2 size={24} />}
+              <div>
+                <p className="font-bold">{uploadStatus.message}</p>
+                {uploadStatus.debug && <p className="text-xs mt-1 opacity-70">{uploadStatus.debug}</p>}
+              </div>
             </div>
-            <div>
-              <p className="font-bold text-sm">
-                {uploadStatus.type === 'success' ? 'Sucesso!' : 'Atenção'}
-              </p>
-              <p className="text-xs opacity-90">{uploadStatus.message}</p>
-            </div>
+            <button onClick={() => setUploadStatus(null)}><X size={20} /></button>
           </div>
-          <button onClick={() => setUploadStatus(null)} className="p-1 hover:bg-black/5 rounded-md">
-            <X size={16} />
-          </button>
         </div>
       )}
 
-      <div className="flex bg-white dark:bg-gray-800 p-1 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm w-fit">
+      <div className="flex bg-white dark:bg-gray-800 p-1 rounded-xl border border-gray-100 dark:border-gray-700 w-fit">
         {['all', 'photos', 'videos'].map((tab) => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab as any)}
             className={`px-6 py-2 rounded-lg text-sm font-bold transition-all capitalize ${activeTab === tab ? 'bg-brand-blue text-white shadow-md' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
           >
-            {tab === 'all' ? 'Todos' : tab === 'photos' ? 'Fotos' : 'Vídeos'}
+            {tab === 'all' ? 'Tudo' : tab === 'photos' ? 'Fotos' : 'Vídeos'}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-          <Loader2 className="animate-spin text-brand-blue" size={48} />
-          <p className="text-gray-400 font-medium">Carregando galeria...</p>
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="animate-spin text-brand-blue mb-4" size={48} />
+          <p className="text-gray-400">Buscando mídias...</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filteredItems.map((item) => (
-            <div key={item.id} className="relative aspect-square rounded-2xl overflow-hidden group cursor-pointer shadow-sm border border-gray-100 dark:border-gray-700">
+            <div key={item.id} className="relative aspect-square rounded-2xl overflow-hidden group shadow-sm border border-gray-100 dark:border-gray-700">
               <img 
                 src={item.type === 'photo' ? item.url : (item.thumbnail || item.url)} 
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                alt="Mídia"
+                alt="3IPI Midia"
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                {item.type === 'video' ? (
-                  <div className="p-3 bg-white/20 backdrop-blur-md rounded-full">
-                    <Play className="text-white fill-white" size={32} />
-                  </div>
-                ) : (
-                  <div className="p-3 bg-white/20 backdrop-blur-md rounded-full">
-                    <ImageIcon className="text-white" size={32} />
-                  </div>
-                )}
+                {item.type === 'video' ? <Play className="text-white fill-white" size={32} /> : <ImageIcon className="text-white" size={32} />}
               </div>
             </div>
           ))}
           {filteredItems.length === 0 && (
             <div className="col-span-full py-20 text-center bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700">
-               <p className="text-gray-400 font-medium">Nenhuma mídia encontrada nesta categoria.</p>
+               <p className="text-gray-400 font-medium">Sua galeria está vazia por enquanto.</p>
             </div>
           )}
         </div>

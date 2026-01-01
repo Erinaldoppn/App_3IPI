@@ -26,7 +26,7 @@ const App: React.FC = () => {
     const initSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
-      if (session) await fetchProfile(session.user.id);
+      if (session) await fetchOrCreateProfile(session.user.id, session.user.email);
       setLoading(false);
     };
 
@@ -35,7 +35,7 @@ const App: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session) {
-        await fetchProfile(session.user.id);
+        await fetchOrCreateProfile(session.user.id, session.user.email || '');
       } else {
         setProfile(null);
       }
@@ -44,14 +44,31 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
+  const fetchOrCreateProfile = async (userId: string, email: string) => {
+    // 1. Tenta buscar o perfil
+    let { data, error } = await supabase
       .from('perfis')
       .select('*')
       .eq('id', userId)
       .single();
     
-    if (!error && data) {
+    // 2. Se não existir (erro P0001 ou PGRST116), cria um novo perfil básico
+    if (error && (error.code === 'PGRST116' || error.message.includes('row'))) {
+      const { data: newData, error: insertError } = await supabase
+        .from('perfis')
+        .insert([{ 
+          id: userId, 
+          email: email, 
+          nome: email.split('@')[0], 
+          is_admin: false 
+        }])
+        .select()
+        .single();
+      
+      if (!insertError) data = newData;
+    }
+    
+    if (data) {
       setProfile(data);
     }
   };
