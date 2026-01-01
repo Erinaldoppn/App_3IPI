@@ -6,6 +6,13 @@ export interface Member {
   created_at: string;
 }
 
+export interface Profile {
+  id: string;
+  email: string;
+  nome: string;
+  is_admin: boolean;
+}
+
 export interface PrayerRequest {
   id: string;
   pedido: string;

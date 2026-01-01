@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '../supabase';
-import { Moon, Sun, Mail, Lock, User, Church, Loader2 } from 'lucide-react';
+import { Moon, Sun, Mail, Lock, User, Loader2, AlertCircle } from 'lucide-react';
 
 interface AuthProps {
   onToggleTheme: () => void;
@@ -14,7 +14,7 @@ const Auth: React.FC<AuthProps> = ({ onToggleTheme, isDark }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; hint?: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,17 +26,30 @@ const Auth: React.FC<AuthProps> = ({ onToggleTheme, isDark }) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({ 
+        const { error: signUpError } = await supabase.auth.signUp({ 
           email, 
           password,
           options: { data: { full_name: name } }
         });
-        if (error) throw error;
-        alert('Cadastro realizado! Se estiver usando chaves reais, verifique seu email.');
+        
+        if (signUpError) {
+            if (signUpError.message.includes('invalid') && signUpError.message.includes('Email')) {
+                throw { 
+                    message: "Este domínio de e-mail não foi reconhecido pelo servidor.",
+                    hint: "Dica: No painel do Supabase, desative 'Validate email address' em Auth Settings ou use um e-mail comum (Gmail/Outlook) para testes."
+                };
+            }
+            throw signUpError;
+        }
+        
+        alert('Cadastro realizado! Verifique sua caixa de entrada (ou spam) se a confirmação estiver ativa.');
         setIsLogin(true);
       }
     } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro inesperado.');
+      setError({ 
+        message: err.message || 'Ocorreu um erro inesperado.',
+        hint: err.hint
+      });
     } finally {
       setLoading(false);
     }
@@ -44,14 +57,23 @@ const Auth: React.FC<AuthProps> = ({ onToggleTheme, isDark }) => {
 
   return (
     <div className="min-h-screen flex bg-white dark:bg-gray-900">
-      {/* Left Side: Visual */}
+      {/* Lado Esquerdo: Visual */}
       <div className="hidden lg:flex lg:w-1/2 bg-brand-blue relative flex-col items-center justify-center p-12 text-white overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-yellow rounded-full -mr-20 -mt-20 opacity-20 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-brand-darkBlue rounded-full -ml-32 -mb-32 opacity-30 blur-3xl"></div>
         
         <div className="relative z-10 flex flex-col items-center">
-          <div className="bg-brand-yellow p-6 rounded-3xl mb-8 transform -rotate-3 hover:rotate-0 transition-transform duration-300 shadow-2xl">
-            <Church className="w-24 h-24 text-brand-darkBlue" />
+          {/* Logo Container com Animação Float */}
+          <div className="bg-brand-yellow p-8 rounded-[3rem] mb-10 shadow-2xl animate-float shadow-brand-yellow/30 border-4 border-white/20">
+            <img 
+              src="https://luvdpnpnzotosndovtry.supabase.co/storage/v1/object/public/assets/logo-3ipi.png" 
+              alt="Logo Igreja 3IPI" 
+              className="w-32 h-32 object-contain drop-shadow-xl"
+              onError={(e) => {
+                // Fallback para caso o link da imagem mude ou não carregue
+                (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/lucide-react/lucide/main/icons/church.svg';
+              }}
+            />
           </div>
           <h1 className="text-6xl font-bold mb-4 tracking-tighter">Igreja 3IPI</h1>
           <p className="text-xl text-blue-100 max-w-md text-center font-medium leading-relaxed">
@@ -60,7 +82,7 @@ const Auth: React.FC<AuthProps> = ({ onToggleTheme, isDark }) => {
         </div>
       </div>
 
-      {/* Right Side: Form */}
+      {/* Lado Direito: Formulário */}
       <div className="w-full lg:w-1/2 flex flex-col relative p-8 md:p-16">
         <button 
           onClick={onToggleTheme}
@@ -105,7 +127,7 @@ const Auth: React.FC<AuthProps> = ({ onToggleTheme, isDark }) => {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-brand-blue transition-colors" size={20} />
                 <input
                   type="email"
-                  placeholder="Email"
+                  placeholder="exemplo@3ipi.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 rounded-xl outline-none transition-all text-gray-900 dark:text-white placeholder:text-gray-400 caret-brand-blue font-medium"
@@ -117,10 +139,12 @@ const Auth: React.FC<AuthProps> = ({ onToggleTheme, isDark }) => {
             <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1">Senha</label>
               <div className="relative group">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-brand-blue transition-colors" size={20} />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-brand-blue transition-colors">
+                  <Lock size={20} />
+                </div>
                 <input
                   type="password"
-                  placeholder="Senha"
+                  placeholder="Mínimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 rounded-xl outline-none transition-all text-gray-900 dark:text-white placeholder:text-gray-400 caret-brand-blue font-medium"
@@ -130,8 +154,17 @@ const Auth: React.FC<AuthProps> = ({ onToggleTheme, isDark }) => {
             </div>
 
             {error && (
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm font-medium">
-                {error}
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm">
+                <div className="flex items-center font-bold mb-1">
+                  <AlertCircle size={16} className="mr-2" />
+                  <span>Erro no cadastro</span>
+                </div>
+                <p>{error.message}</p>
+                {error.hint && (
+                  <p className="mt-2 p-2 bg-white/50 dark:bg-black/20 rounded border border-red-100 dark:border-red-900/40 text-xs font-medium">
+                    {error.hint}
+                  </p>
+                )}
               </div>
             )}
 

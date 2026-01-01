@@ -8,14 +8,14 @@ import {
   Info, 
   UsersRound, 
   Image as ImageIcon, 
-  Video, 
   Heart, 
   Menu, 
   X, 
   Moon, 
   Sun,
   LogOut,
-  User
+  User,
+  Settings
 } from 'lucide-react';
 import { supabase } from '../supabase';
 
@@ -23,9 +23,10 @@ interface LayoutProps {
   onToggleTheme: () => void;
   isDark: boolean;
   session: any;
+  isAdmin: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ onToggleTheme, isDark, session }) => {
+const Layout: React.FC<LayoutProps> = ({ onToggleTheme, isDark, session, isAdmin }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -44,9 +45,12 @@ const Layout: React.FC<LayoutProps> = ({ onToggleTheme, isDark, session }) => {
     { name: 'Pedidos de Oração', icon: Heart, path: '/pedidos-oracao' },
   ];
 
+  if (isAdmin) {
+    navItems.push({ name: 'Configurações Admin', icon: Settings, path: '/admin' });
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col md:flex-row">
-      {/* Mobile Header */}
       <header className="md:hidden bg-brand-darkBlue text-white p-4 flex justify-between items-center sticky top-0 z-50">
         <h1 className="font-bold text-xl">3IPI</h1>
         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
@@ -54,7 +58,6 @@ const Layout: React.FC<LayoutProps> = ({ onToggleTheme, isDark, session }) => {
         </button>
       </header>
 
-      {/* Sidebar */}
       <aside 
         className={`
           fixed inset-y-0 left-0 z-40 w-64 bg-brand-darkBlue text-white transition-transform duration-300 transform 
@@ -102,11 +105,11 @@ const Layout: React.FC<LayoutProps> = ({ onToggleTheme, isDark, session }) => {
         </div>
       </aside>
 
-      {/* Desktop Header & Content */}
       <main className="flex-1 flex flex-col">
         <header className="hidden md:flex bg-white dark:bg-gray-800 border-b dark:border-gray-700 h-16 items-center justify-between px-8">
           <div className="flex items-center space-x-4">
              <h2 className="text-gray-600 dark:text-gray-300 font-medium">Seja bem-vindo(a)!</h2>
+             {isAdmin && <span className="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">Admin</span>}
           </div>
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -123,7 +126,6 @@ const Layout: React.FC<LayoutProps> = ({ onToggleTheme, isDark, session }) => {
         </div>
       </main>
 
-      {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-30 md:hidden" 

@@ -26,10 +26,11 @@ const Members: React.FC = () => {
       if (data && data.length > 0) {
         setMembers(data);
       } else if (isMocked) {
-        // Fallback apenas se o banco estiver vazio e for modo mock
         setMembers([
           { id: '1', nome: 'João Silva (Exemplo)', foto_url: 'https://i.pravatar.cc/150?u=1', created_at: '' },
           { id: '2', nome: 'Maria Oliveira (Exemplo)', foto_url: 'https://i.pravatar.cc/150?u=2', created_at: '' },
+          { id: '3', nome: 'Pedro Santos (Exemplo)', foto_url: 'https://i.pravatar.cc/150?u=3', created_at: '' },
+          { id: '4', nome: 'Ana Costa (Exemplo)', foto_url: 'https://i.pravatar.cc/150?u=4', created_at: '' },
         ]);
       }
     } catch (err) {
@@ -50,7 +51,7 @@ const Members: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Membros</h1>
           <p className="text-gray-500 dark:text-gray-400">Diretório de membros da nossa comunidade.</p>
         </div>
-        <button className="flex items-center space-x-2 bg-brand-blue text-white px-6 py-3 rounded-xl hover:bg-brand-darkBlue transition-colors font-bold shadow-lg shadow-brand-blue/20">
+        <button className="flex items-center space-x-2 bg-brand-blue text-white px-6 py-3 rounded-xl hover:bg-brand-darkBlue transition-all font-bold shadow-lg shadow-brand-blue/20 active:scale-95">
           <Plus size={20} />
           <span>Novo Membro</span>
         </button>
@@ -63,7 +64,7 @@ const Members: React.FC = () => {
           placeholder="Pesquisar por nome..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue text-gray-900 dark:text-white placeholder:text-gray-400 caret-brand-blue transition-all"
+          className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue text-gray-900 dark:text-white placeholder:text-gray-400 caret-brand-blue transition-all shadow-sm"
         />
       </div>
 
@@ -72,32 +73,47 @@ const Members: React.FC = () => {
           <Loader2 className="animate-spin text-brand-blue" size={40} />
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {filteredMembers.map((member) => (
-            <div key={member.id} className="flex flex-col items-center text-center group">
-              <div className="relative mb-3">
-                <div className="absolute inset-0 bg-brand-blue rounded-full scale-0 group-hover:scale-105 transition-transform opacity-10"></div>
-                {member.foto_url ? (
-                  <img 
-                    src={member.foto_url} 
-                    alt={member.nome} 
-                    className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-lg group-hover:border-brand-blue transition-colors" 
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-800 shadow-md">
-                    <UserIcon size={40} className="text-gray-400" />
-                  </div>
-                )}
+            <div 
+              key={member.id} 
+              className="group flex flex-col items-center text-center p-6 bg-white dark:bg-gray-800 rounded-2xl border border-transparent hover:border-brand-blue/50 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 cursor-pointer"
+            >
+              <div className="relative mb-4">
+                {/* Glow effect on hover */}
+                <div className="absolute inset-0 bg-brand-blue rounded-full scale-0 group-hover:scale-110 transition-transform opacity-0 group-hover:opacity-10 blur-md"></div>
+                
+                <div className="relative overflow-hidden rounded-full w-24 h-24 border-4 border-gray-50 dark:border-gray-700 group-hover:border-brand-blue transition-colors duration-300">
+                  {member.foto_url ? (
+                    <img 
+                      src={member.foto_url} 
+                      alt={member.nome} 
+                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" 
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                      <UserIcon size={40} className="text-gray-400 group-hover:text-brand-blue transition-colors" />
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="font-bold text-gray-900 dark:text-white group-hover:text-brand-blue transition-colors truncate w-full px-2">
-                {member.nome}
-              </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase font-semibold">Membro</p>
+              
+              <div className="space-y-1 w-full">
+                <p className="font-bold text-gray-900 dark:text-white group-hover:text-brand-blue transition-colors truncate px-2 text-lg">
+                  {member.nome}
+                </p>
+                <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-brand-blue uppercase tracking-wider">
+                  Membro
+                </div>
+              </div>
             </div>
           ))}
           {filteredMembers.length === 0 && !loading && (
-            <div className="col-span-full py-10 text-center text-gray-500">
-              Nenhum membro encontrado no banco de dados.
+            <div className="col-span-full py-20 text-center">
+              <div className="inline-flex p-4 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
+                <Search size={32} className="text-gray-400" />
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 font-medium">Nenhum membro encontrado com este nome.</p>
             </div>
           )}
         </div>

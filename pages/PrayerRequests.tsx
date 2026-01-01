@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, isMocked } from '../supabase';
 import { PrayerRequest } from '../types';
-import { Send, Heart, User, Phone, CheckCircle2, History, Loader2 } from 'lucide-react';
+import { Send, Heart, User, Phone, CheckCircle2, History, Loader2, Check } from 'lucide-react';
 
 const PrayerRequests: React.FC = () => {
   const [pedido, setPedido] = useState('');
@@ -11,6 +11,7 @@ const PrayerRequests: React.FC = () => {
   const [history, setHistory] = useState<PrayerRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     fetchHistory();
@@ -44,6 +45,8 @@ const PrayerRequests: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    
     setSubmitting(true);
 
     const newRequest = {
@@ -63,8 +66,16 @@ const PrayerRequests: React.FC = () => {
       setPedido('');
       setNome('');
       setTelefone('');
+      
+      // Ativa animação de sucesso
+      setShowSuccess(true);
       fetchHistory();
-      alert('Seu pedido foi enviado! Estaremos em oração por você.');
+      
+      // Remove a mensagem de sucesso após 4 segundos
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 4000);
+
     } catch (err: any) {
       console.error('Erro ao inserir pedido:', err);
       alert('Erro ao enviar pedido: ' + (err.message || 'Verifique as permissões da tabela.'));
@@ -81,7 +92,22 @@ const PrayerRequests: React.FC = () => {
           <p className="text-gray-500 dark:text-gray-400">Conte conosco. Nossa equipe de intercessão estará orando pelo seu pedido.</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden">
+          {/* Animação de Sucesso Overlay */}
+          <div className={`absolute inset-0 z-10 bg-white/90 dark:bg-gray-800/95 flex flex-col items-center justify-center transition-all duration-500 ${showSuccess ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'}`}>
+             <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4 animate-bounce">
+                <Check className="text-green-600 dark:text-green-400" size={40} strokeWidth={3} />
+             </div>
+             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Pedido Enviado!</h3>
+             <p className="text-gray-500 dark:text-gray-400 mt-1">Estaremos em oração por você.</p>
+             <button 
+               onClick={() => setShowSuccess(false)}
+               className="mt-6 text-brand-blue font-bold text-sm hover:underline"
+             >
+               Enviar outro pedido
+             </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Seu Pedido</label>
@@ -125,7 +151,7 @@ const PrayerRequests: React.FC = () => {
 
             <button 
               disabled={submitting}
-              className="w-full bg-brand-yellow hover:bg-yellow-400 text-brand-darkBlue font-bold py-4 rounded-xl shadow-lg shadow-brand-yellow/20 transition-all flex items-center justify-center space-x-2 active:scale-95"
+              className="w-full bg-brand-yellow hover:bg-yellow-400 text-brand-darkBlue font-bold py-4 rounded-xl shadow-lg shadow-brand-yellow/20 transition-all flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? <Loader2 className="animate-spin" /> : (
                 <>
@@ -168,7 +194,7 @@ const PrayerRequests: React.FC = () => {
                       ? 'bg-green-100 text-green-600' 
                       : 'bg-yellow-100 text-yellow-600'
                   }`}>
-                    {h.status}
+                    {h.status === 'pendente' ? 'Pendente' : 'Atendido'}
                   </span>
                 </div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm italic mb-4">
