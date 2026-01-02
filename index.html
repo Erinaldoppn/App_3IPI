@@ -35,6 +35,8 @@
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
       body {
         font-family: 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
       /* Previne flashes brancos durante carregamento em modo escuro */
       html.dark {
@@ -44,16 +46,16 @@
     <script type="importmap">
     {
       "imports": {
-        "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-        "react/": "https://esm.sh/react@^19.2.3/",
-        "react": "https://esm.sh/react@^19.2.3",
-        "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
-        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.89.0"
+        "react": "https://esm.sh/react@19.0.0",
+        "react/": "https://esm.sh/react@19.0.0/",
+        "react-dom": "https://esm.sh/react-dom@19.0.0",
+        "react-dom/": "https://esm.sh/react-dom@19.0.0/",
+        "lucide-react": "https://esm.sh/lucide-react@0.462.0?external=react",
+        "react-router-dom": "https://esm.sh/react-router-dom@7.1.1?external=react,react-dom",
+        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.47.10"
       }
     }
     </script>
-    <!-- Script de entrada principal sem a barra inicial para maior compatibilidade -->
     <script type="module" src="index.tsx"></script>
   </head>
   <body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">

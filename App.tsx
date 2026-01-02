@@ -14,41 +14,51 @@ import AdminSettings from './pages/AdminSettings';
 import Layout from './components/Layout';
 import Logo from './components/Logo';
 import { Profile } from './types';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { AlertCircle, WifiOff } from 'lucide-react';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [slowConnection, setSlowConnection] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (loading) setLoading(false);
-    }, 5000);
+    // Monitor de conexão lenta (comum quando o Supabase está "acordando")
+    const slowTimer = setTimeout(() => {
+      if (loading) setSlowConnection(true);
+    }, 3000);
 
     const initSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        if (session) await fetchOrCreateProfile(session.user.id, session.user.email || '');
-      } catch (err) {
-        setError("Não foi possível conectar ao servidor.");
+        console.log("Conectando ao Supabase...");
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) throw sessionError;
+
+        setSession(currentSession);
+        
+        if (currentSession) {
+          await fetchOrCreateProfile(currentSession.user.id, currentSession.user.email || '');
+        }
+      } catch (err: any) {
+        console.error("Erro na inicialização:", err);
+        setError("Não foi possível conectar ao servidor. O banco de dados pode estar em manutenção ou acordando.");
       } finally {
         setLoading(false);
-        clearTimeout(timeoutId);
+        clearTimeout(slowTimer);
       }
     };
 
     initSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      if (session) {
-        await fetchOrCreateProfile(session.user.id, session.user.email || '');
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      setSession(newSession);
+      if (newSession) {
+        await fetchOrCreateProfile(newSession.user.id, newSession.user.email || '');
       } else {
         setProfile(null);
       }
@@ -56,21 +66,27 @@ const App: React.FC = () => {
 
     return () => {
       subscription.unsubscribe();
-      clearTimeout(timeoutId);
+      clearTimeout(slowTimer);
     };
   }, []);
 
   const fetchOrCreateProfile = async (userId: string, email: string) => {
     try {
-      let { data, error } = await supabase.from('perfis').select('*').eq('id', userId).single();
-      if (error && (error.code === 'PGRST116' || error.message.includes('row'))) {
-        const { data: newData } = await supabase.from('perfis').insert([{ 
+      let { data, error } = await supabase.from('perfis').select('*').eq('id', userId).maybeSingle();
+      
+      if (!data && !error) {
+        const { data: newData, error: insertError } = await supabase.from('perfis').insert([{ 
           id: userId, email: email, nome: email.split('@')[0], is_admin: false 
         }]).select().single();
+        
         if (newData) data = newData;
+        if (insertError) console.error("Erro ao criar perfil:", insertError);
       }
+      
       if (data) setProfile(data);
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error("Erro ao buscar perfil:", err); 
+    }
   };
 
   useEffect(() => {
@@ -81,14 +97,23 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900">
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900 transition-colors duration-500">
         <div className="relative flex items-center justify-center">
           <div className="absolute h-32 w-32 rounded-full border-4 border-gray-100 dark:border-gray-800 border-t-brand-blue animate-spin"></div>
           <Logo size="lg" className="animate-pulse" />
         </div>
-        <div className="mt-8 text-center">
-          <p className="text-gray-900 dark:text-white font-black text-xl tracking-tighter">3IPI</p>
-          <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Conectando você ao Reino</p>
+        <div className="mt-8 text-center space-y-2 animate-in fade-in duration-700">
+          <p className="text-gray-900 dark:text-white font-black text-xl tracking-tighter uppercase">Igreja 3IPI</p>
+          <div className="flex flex-col items-center">
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+              {slowConnection ? 'O servidor está acordando, por favor aguarde...' : 'Conectando à sua comunidade...'}
+            </p>
+            {slowConnection && (
+              <span className="mt-4 px-3 py-1 bg-brand-blue/10 text-brand-blue text-[10px] font-bold rounded-full animate-pulse">
+                ESTABELECENDO CONEXÃO SEGURA
+              </span>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -97,11 +122,18 @@ const App: React.FC = () => {
   if (error) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-6">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl max-w-sm text-center">
-          <AlertCircle className="text-red-500 mx-auto mb-4" size={48} />
-          <h2 className="text-xl font-bold dark:text-white mb-2">Erro de Conexão</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
-          <button onClick={() => window.location.reload()} className="w-full bg-brand-blue text-white py-3 rounded-xl font-bold">Tentar Novamente</button>
+        <div className="bg-white dark:bg-gray-800 p-10 rounded-[2.5rem] shadow-2xl max-w-sm text-center border border-gray-100 dark:border-gray-700">
+          <div className="w-20 h-20 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <WifiOff className="text-red-500" size={40} />
+          </div>
+          <h2 className="text-2xl font-black dark:text-white mb-3 tracking-tighter">Ops! Sem Conexão</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-8 text-sm leading-relaxed">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="w-full bg-brand-blue hover:bg-brand-darkBlue text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-blue/20 transition-all active:scale-95"
+          >
+            Tentar Novamente
+          </button>
         </div>
       </div>
     );
