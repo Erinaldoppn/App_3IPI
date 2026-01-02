@@ -2,18 +2,40 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, isMocked } from '../supabase';
 import { Member } from '../types';
-import { Plus, Search, User as UserIcon, Loader2, X, Upload, Calendar, Phone, MapPin, Heart, Users as UsersIcon } from 'lucide-react';
+import { 
+  Plus, 
+  Search, 
+  User as UserIcon, 
+  Loader2, 
+  X, 
+  Upload, 
+  Calendar, 
+  Phone, 
+  MapPin, 
+  Heart, 
+  Users as UsersIcon,
+  Trash2,
+  AlertTriangle
+} from 'lucide-react';
 
-const Members: React.FC = () => {
+interface MembersProps {
+  isAdmin?: boolean;
+}
+
+const Members: React.FC<MembersProps> = ({ isAdmin = false }) => {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Delete state
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form states
   const [nome, setNome] = useState('');
-  const [dataNascimento, setDataNascimento] = useState('');
+  const [dataNascimento, setDataNascimento] = useState(''); // Formato DD/MM/AAAA para o input
   const [idade, setIdade] = useState<number | string>('');
   const [telefone, setTelefone] = useState('');
   const [endereco, setEndereco] = useState('');
@@ -28,20 +50,37 @@ const Members: React.FC = () => {
     fetchMembers();
   }, []);
 
-  // Cálculo automático de idade
-  useEffect(() => {
-    if (dataNascimento) {
-      const birthDate = new Date(dataNascimento);
-      const today = new Date();
-      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-      const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        calculatedAge--;
+  // Helper para converter DD/MM/AAAA para YYYY-MM-DD
+  const convertToIsoDate = (dateStr: string) => {
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      const day = parts[0];
+      const month = parts[1];
+      const year = parts[2];
+      if (day.length === 2 && month.length === 2 && year.length === 4) {
+        return `${year}-${month}-${day}`;
       }
-      setIdade(calculatedAge >= 0 ? calculatedAge : '');
-    } else {
-      setIdade('');
     }
+    return null;
+  };
+
+  // Cálculo automático de idade baseado no texto digitado
+  useEffect(() => {
+    const isoDate = convertToIsoDate(dataNascimento);
+    if (isoDate) {
+      const birthDate = new Date(isoDate);
+      const today = new Date();
+      if (!isNaN(birthDate.getTime())) {
+        let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          calculatedAge--;
+        }
+        setIdade(calculatedAge >= 0 ? calculatedAge : '');
+        return;
+      }
+    }
+    setIdade('');
   }, [dataNascimento]);
 
   const fetchMembers = async () => {
@@ -79,8 +118,30 @@ const Members: React.FC = () => {
     }
   };
 
+  // Função para aplicar máscara de data (DD/MM/AAAA)
+  const handleDataNascimentoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+    if (val.length > 8) val = val.slice(0, 8); // Limita a 8 dígitos
+
+    let formatted = val;
+    if (val.length > 2) {
+      formatted = val.slice(0, 2) + '/' + val.slice(2);
+    }
+    if (val.length > 4) {
+      formatted = formatted.slice(0, 5) + '/' + formatted.slice(5);
+    }
+    setDataNascimento(formatted);
+  };
+
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const isoDate = convertToIsoDate(dataNascimento);
+    if (!isoDate) {
+      alert('Por favor, insira uma data de nascimento válida (DD/MM/AAAA)');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -106,7 +167,7 @@ const Members: React.FC = () => {
 
       const { error } = await supabase.from('membros').insert([{
         nome,
-        data_nascimento: dataNascimento,
+        data_nascimento: isoDate, // Salva no formato YYYY-MM-DD
         telefone,
         endereco,
         genero,
@@ -123,6 +184,27 @@ const Members: React.FC = () => {
       alert('Erro ao cadastrar: ' + err.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteMember = async () => {
+    if (!memberToDelete || !isAdmin) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('membros')
+        .delete()
+        .eq('id', memberToDelete.id);
+
+      if (error) throw error;
+      
+      setMembers(members.filter(m => m.id !== memberToDelete.id));
+      setMemberToDelete(null);
+    } catch (err: any) {
+      alert('Erro ao excluir membro: ' + err.message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -179,21 +261,43 @@ const Members: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {filteredMembers.map((member) => (
-            <div key={member.id} className="group flex flex-col items-center text-center p-6 bg-white dark:bg-gray-800 rounded-2xl border border-transparent hover:border-brand-blue/50 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+            <div 
+              key={member.id} 
+              className="group relative flex flex-col items-center text-center p-6 bg-white dark:bg-gray-800 rounded-2xl border-2 border-transparent hover:border-brand-blue shadow-md hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 cursor-default"
+            >
+              
+              {/* Botão de Excluir (Apenas Admin) */}
+              {isAdmin && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMemberToDelete(member);
+                  }}
+                  className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white z-10"
+                  title="Excluir Membro"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+
               <div className="relative mb-4">
-                <div className="relative overflow-hidden rounded-full w-24 h-24 border-4 border-gray-50 dark:border-gray-700 group-hover:border-brand-blue transition-colors duration-300">
+                <div className="relative overflow-hidden rounded-full w-24 h-24 border-4 border-gray-50 dark:border-gray-700 group-hover:border-brand-blue/30 transition-colors duration-500">
                   {member.foto_url ? (
-                    <img src={member.foto_url} alt={member.nome} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
+                    <img 
+                      src={member.foto_url} 
+                      alt={member.nome} 
+                      className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-125" 
+                    />
                   ) : (
                     <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                      <UserIcon size={40} className="text-gray-400 group-hover:text-brand-blue transition-colors" />
+                      <UserIcon size={40} className="text-gray-400 group-hover:text-brand-blue transition-colors duration-500" />
                     </div>
                   )}
                 </div>
               </div>
-              <p className="font-bold text-gray-900 dark:text-white text-lg truncate w-full">{member.nome}</p>
+              <p className="font-bold text-gray-900 dark:text-white text-lg truncate w-full transition-colors group-hover:text-brand-blue">{member.nome}</p>
               <p className="text-xs text-gray-400 mb-2">{member.telefone || 'Sem telefone'}</p>
-              <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-50 dark:bg-blue-900/30 text-brand-blue uppercase tracking-wider">
+              <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-50 dark:bg-blue-900/30 text-brand-blue uppercase tracking-wider transition-all group-hover:bg-brand-blue group-hover:text-white">
                 Membro
               </div>
             </div>
@@ -259,10 +363,12 @@ const Members: React.FC = () => {
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                       <input 
-                        type="date" 
+                        type="text" 
                         required 
                         value={dataNascimento} 
-                        onChange={(e) => setDataNascimento(e.target.value)} 
+                        onChange={handleDataNascimentoChange} 
+                        placeholder="DD/MM/AAAA"
+                        maxLength={10}
                         className={inputClasses} 
                       />
                     </div>
@@ -359,6 +465,40 @@ const Members: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      {memberToDelete && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-red-100 dark:border-red-900/30 p-8 text-center">
+            <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600 dark:text-red-400">
+              <AlertTriangle size={40} />
+            </div>
+            
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Confirmar Exclusão</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-8">
+              Tem certeza que deseja excluir <strong>{memberToDelete.nome}</strong>? Esta ação não pode ser desfeita.
+            </p>
+
+            <div className="flex flex-col space-y-3">
+              <button 
+                disabled={isDeleting}
+                onClick={handleDeleteMember}
+                className="w-full bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 className="animate-spin" /> : <Trash2 size={20} />}
+                <span>{isDeleting ? 'Excluindo...' : 'Sim, Excluir Membro'}</span>
+              </button>
+              <button 
+                disabled={isDeleting}
+                onClick={() => setMemberToDelete(null)}
+                className="w-full py-4 font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -173,7 +173,7 @@ const App: React.FC = () => {
           <Route path="/quem-somos" element={<About />} />
           <Route path="/eventos" element={<Events isAdmin={isAdmin} />} />
           <Route path="/grupos" element={<Groups />} />
-          <Route path="/membros" element={<Members />} />
+          <Route path="/membros" element={<Members isAdmin={isAdmin} />} />
           <Route path="/fotos-videos" element={<Media isAdmin={isAdmin} />} />
           <Route path="/pedidos-oracao" element={<PrayerRequests />} />
           {isAdmin && <Route path="/admin" element={<AdminSettings />} />}
