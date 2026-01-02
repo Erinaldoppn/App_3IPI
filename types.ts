@@ -32,8 +32,10 @@ export interface Event {
   title: string;
   date: string;
   time: string;
+  location: string;
   description: string;
   image: string;
+  created_at?: string;
 }
 
 export interface Group {
