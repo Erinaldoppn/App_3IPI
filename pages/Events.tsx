@@ -48,7 +48,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
 
       if (error) {
         console.error('Erro ao buscar eventos:', error);
-        // Fallback para dados estáticos se a tabela não existir
+        // Fallback para dados estáticos se a tabela não existir ou der erro de RLS
         setEvents([
           {
             id: '1',
@@ -69,7 +69,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
             image: 'https://picsum.photos/seed/event2/600/400'
           }
         ]);
-      } else if (data && data.length > 0) {
+      } else if (data) {
         setEvents(data);
       }
     } catch (err) {
@@ -101,14 +101,17 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
 
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const fileName = `capa-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
         const filePath = `eventos/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('midia')
           .upload(filePath, imageFile);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Erro no upload da imagem:', uploadError);
+          throw new Error('Não foi possível enviar a imagem. Verifique se o bucket "midia" existe e é público.');
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('midia')
@@ -126,13 +129,18 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
         image: imageUrl
       }]);
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('column') && error.message.includes('date')) {
+          throw new Error('A coluna "date" não foi encontrada na tabela "eventos". Por favor, execute o comando SQL de correção fornecido.');
+        }
+        throw error;
+      }
 
       setShowAddModal(false);
       resetForm();
       fetchEvents();
     } catch (err: any) {
-      alert('Erro ao adicionar evento: ' + (err.message || 'Verifique se a tabela "eventos" e o bucket "midia" estão configurados.'));
+      alert(err.message || 'Erro inesperado ao salvar evento.');
     } finally {
       setUploading(false);
     }
@@ -238,7 +246,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
                     required 
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue dark:text-white"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue text-gray-900 dark:text-white caret-brand-blue"
                     placeholder="Ex: Noite de Louvor"
                   />
                 </div>
@@ -248,7 +256,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
                     required
                     value={newLocation}
                     onChange={(e) => setNewLocation(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue dark:text-white"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue text-gray-900 dark:text-white caret-brand-blue"
                     placeholder="Ex: Templo Principal"
                   />
                 </div>
@@ -258,7 +266,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
                     required
                     value={newDate}
                     onChange={(e) => setNewDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue dark:text-white"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue text-gray-900 dark:text-white caret-brand-blue"
                     placeholder="Ex: 15 Dez"
                   />
                 </div>
@@ -268,7 +276,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
                     required
                     value={newTime}
                     onChange={(e) => setNewTime(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue dark:text-white"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue text-gray-900 dark:text-white caret-brand-blue"
                     placeholder="Ex: 19:00"
                   />
                 </div>
@@ -280,7 +288,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
                   required
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full h-24 px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue dark:text-white resize-none"
+                  className="w-full h-24 px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-4 focus:ring-brand-blue/10 focus:border-brand-blue text-gray-900 dark:text-white resize-none caret-brand-blue"
                   placeholder="Conte um pouco sobre o evento..."
                 />
               </div>
@@ -289,7 +297,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
                 <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Capa do Evento</label>
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="relative h-40 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-brand-blue transition-colors group overflow-hidden"
+                  className="relative h-40 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-brand-blue transition-colors group overflow-hidden bg-gray-50 dark:bg-gray-700"
                 >
                   {imagePreview ? (
                     <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
@@ -320,7 +328,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
                 <button 
                   disabled={uploading}
                   type="submit" 
-                  className="flex-1 bg-brand-blue text-white py-3 rounded-xl font-bold shadow-lg shadow-brand-blue/20 flex items-center justify-center space-x-2 disabled:opacity-50"
+                  className="flex-1 bg-brand-blue text-white py-3 rounded-xl font-bold shadow-lg shadow-brand-blue/20 flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-95"
                 >
                   {uploading ? <Loader2 className="animate-spin" /> : <Plus size={20} />}
                   <span>{uploading ? 'Salvando...' : 'Salvar Evento'}</span>
