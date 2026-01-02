@@ -295,8 +295,7 @@ const Members: React.FC<MembersProps> = ({ isAdmin = false }) => {
                   )}
                 </div>
               </div>
-              <p className="font-bold text-gray-900 dark:text-white text-lg truncate w-full transition-colors group-hover:text-brand-blue">{member.nome}</p>
-              <p className="text-xs text-gray-400 mb-2">{member.telefone || 'Sem telefone'}</p>
+              <p className="font-bold text-gray-900 dark:text-white text-lg truncate w-full transition-colors group-hover:text-brand-blue mb-3">{member.nome}</p>
               <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-50 dark:bg-blue-900/30 text-brand-blue uppercase tracking-wider transition-all group-hover:bg-brand-blue group-hover:text-white">
                 Membro
               </div>
