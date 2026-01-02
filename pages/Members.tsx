@@ -307,8 +307,8 @@ const Members: React.FC<MembersProps> = ({ isAdmin = false }) => {
       {/* Modal de Cadastro */}
       {showAddModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/10">
-            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700 bg-brand-blue text-white">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-white/10">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-brand-blue text-white">
               <h2 className="text-xl font-bold flex items-center">
                 <UsersIcon className="mr-2" /> Cadastro de Membro
               </h2>
@@ -352,7 +352,7 @@ const Members: React.FC<MembersProps> = ({ isAdmin = false }) => {
                         value={nome} 
                         onChange={(e) => setNome(e.target.value)} 
                         className={inputClasses} 
-                        placeholder="Nome completo do membro" 
+                        placeholder="Ex: João da Silva" 
                       />
                     </div>
                   </div>
@@ -366,7 +366,7 @@ const Members: React.FC<MembersProps> = ({ isAdmin = false }) => {
                         required 
                         value={dataNascimento} 
                         onChange={handleDataNascimentoChange} 
-                        placeholder="DD/MM/AAAA"
+                        placeholder="Ex: 15/05/1990"
                         maxLength={10}
                         className={inputClasses} 
                       />
@@ -379,7 +379,7 @@ const Members: React.FC<MembersProps> = ({ isAdmin = false }) => {
                       readOnly 
                       value={idade} 
                       className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl font-bold text-brand-blue cursor-default" 
-                      placeholder="-" 
+                      placeholder="Calculada automaticamente" 
                     />
                   </div>
 
@@ -391,7 +391,7 @@ const Members: React.FC<MembersProps> = ({ isAdmin = false }) => {
                         value={telefone} 
                         onChange={(e) => setTelefone(e.target.value)} 
                         className={inputClasses} 
-                        placeholder="(00) 00000-0000" 
+                        placeholder="Ex: (11) 98888-7777" 
                       />
                     </div>
                   </div>
@@ -439,7 +439,7 @@ const Members: React.FC<MembersProps> = ({ isAdmin = false }) => {
                         value={endereco} 
                         onChange={(e) => setEndereco(e.target.value)} 
                         className={inputClasses} 
-                        placeholder="Rua, Número, Bairro, Cidade" 
+                        placeholder="Ex: Rua das Oliveiras, 123 - Bairro" 
                       />
                     </div>
                   </div>
@@ -450,7 +450,7 @@ const Members: React.FC<MembersProps> = ({ isAdmin = false }) => {
                 <button 
                   type="button" 
                   onClick={() => { setShowAddModal(false); resetForm(); }} 
-                  className="flex-1 py-4 font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all"
+                  className="flex-1 py-4 font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all border border-transparent hover:border-gray-200"
                 >
                   Cancelar
                 </button>
@@ -470,9 +470,9 @@ const Members: React.FC<MembersProps> = ({ isAdmin = false }) => {
 
       {/* Modal de Confirmação de Exclusão */}
       {memberToDelete && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-red-100 dark:border-red-900/30 p-8 text-center">
-            <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600 dark:text-red-400">
+            <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600 dark:text-red-400 border border-red-200">
               <AlertTriangle size={40} />
             </div>
             

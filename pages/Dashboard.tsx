@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
-import { Calendar, Users, Heart, Video, QrCode, Copy, CheckCircle2 } from 'lucide-react';
+import { Calendar, Users, Heart, Video, QrCode, Copy, CheckCircle2, ImageOff } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const [copied, setCopied] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const pixCnpj = "62.332.735/0001-70";
 
   const stats = [
@@ -18,6 +19,9 @@ const Dashboard: React.FC = () => {
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
   };
+
+  // Caminho oficial no seu Supabase
+  const flyerUrl = "https://luvdpnpnzotosndovtry.supabase.co/storage/v1/object/public/midia/pix-flyer-3ipi.png";
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -61,57 +65,63 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Card Dízimos e Ofertas (Inspirado na imagem enviada) */}
-        <div className="bg-brand-blue rounded-[2.5rem] p-8 text-white relative overflow-hidden flex flex-col items-center text-center shadow-2xl shadow-brand-blue/30 group">
-          {/* Decoração de fundo */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-brand-yellow/10 rounded-full -ml-16 -mb-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-
-          <div className="relative z-10 w-full">
-            <h2 className="text-2xl font-black uppercase tracking-tighter mb-1">Dízimos</h2>
-            <h2 className="text-2xl font-black uppercase tracking-tighter mb-6 opacity-80 leading-none">e Ofertas</h2>
-            
-            {/* Área do QR Code */}
-            <div className="bg-white p-4 rounded-3xl mb-6 shadow-xl inline-block group-hover:rotate-2 transition-transform duration-500">
-              <div className="p-2 border-4 border-[#CCFF00] rounded-xl">
-                 <img 
-                  src="https://luvdpnpnzotosndovtry.supabase.co/storage/v1/object/public/assets/qr-code-3ipi.png" 
-                  alt="QR Code PIX 3IPI" 
-                  className="w-32 h-32 md:w-40 md:h-40 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=00020126580014br.gov.bcb.pix0114623327350001705204000053039865802BR5910Igreja3IPI6009SAO PAULO62070503***6304E2B1';
-                  }}
+        {/* Card Dízimos e Ofertas */}
+        <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] p-0 shadow-2xl shadow-black/10 overflow-hidden group flex flex-col border border-gray-100 dark:border-gray-700">
+          <div className="p-8 pb-4 text-center">
+            <h2 className="text-2xl font-black text-brand-darkBlue dark:text-white uppercase tracking-tighter">Dízimos e Ofertas</h2>
+          </div>
+          
+          <div className="flex-1 px-8 flex flex-col items-center">
+            {/* Flyer Image Container */}
+            <div className="relative w-full max-w-[240px] aspect-[3/4] rounded-3xl overflow-hidden shadow-xl border-4 border-gray-50 dark:border-gray-700 group-hover:scale-[1.02] transition-transform duration-500 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+              {!imageError ? (
+                <img 
+                  src={flyerUrl} 
+                  alt="Flyer Dízimos e Ofertas 3IPI" 
+                  className="w-full h-full object-cover"
+                  onError={() => setImageError(true)}
                 />
-              </div>
+              ) : (
+                <div className="text-center p-6 flex flex-col items-center">
+                  <ImageOff size={48} className="text-gray-300 mb-2" />
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-tight">
+                    Flyer não encontrado.<br/>Upload necessário no bucket 'midia' como 'pix-flyer-3ipi.png'
+                  </p>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-blue/20 to-transparent pointer-events-none"></div>
             </div>
 
-            <div className="space-y-4">
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 flex items-center justify-between border border-white/20">
-                <div className="flex items-center space-x-2">
-                  <div className="bg-brand-yellow p-1.5 rounded-lg">
-                    <QrCode size={16} className="text-brand-darkBlue" />
+            {/* CNPJ e Botão Copiar */}
+            <div className="w-full mt-6 space-y-4">
+              <div className="bg-brand-blue dark:bg-brand-blue/20 rounded-2xl p-3 flex items-center justify-between border border-brand-blue/10">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <QrCode size={18} className="text-white" />
                   </div>
-                  <span className="text-xs font-bold font-mono tracking-tight">{pixCnpj}</span>
+                  <span className="text-sm font-bold text-white tracking-wide">{pixCnpj}</span>
                 </div>
                 <button 
                   onClick={handleCopyPix}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  className="bg-white/10 hover:bg-white/30 p-2 rounded-xl transition-all text-white active:scale-90"
                   title="Copiar CNPJ PIX"
                 >
-                  {copied ? <CheckCircle2 size={18} className="text-brand-yellow" /> : <Copy size={18} />}
+                  {copied ? <CheckCircle2 size={20} className="text-brand-yellow" /> : <Copy size={20} />}
                 </button>
               </div>
 
-              <p className="text-[10px] leading-tight font-bold opacity-80 uppercase tracking-widest px-4">
-                Aponte a câmera do seu celular para o código acima e faça a sua contribuição.
-              </p>
-
-              <div className="pt-4 border-t border-white/10">
-                <p className="text-[11px] font-bold italic text-brand-yellow">"Deus ama o que dá com alegria"</p>
-                <p className="text-[9px] font-black opacity-60">2CO 9:7</p>
+              <div className="text-center space-y-2">
+                <p className="text-[10px] leading-tight font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest px-2">
+                  Aponte a câmera do seu celular para o código acima e faça a sua contribuição.
+                </p>
+                <div className="pt-2">
+                  <p className="text-xs font-bold italic text-brand-blue dark:text-brand-yellow">"Deus ama o que dá com alegria"</p>
+                  <p className="text-[10px] font-black text-gray-400 opacity-60">2CORÍNTIOS 9:7</p>
+                </div>
               </div>
             </div>
           </div>
+          <div className="h-6 bg-brand-blue mt-6"></div>
         </div>
       </div>
 
