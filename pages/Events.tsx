@@ -54,17 +54,17 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
       if (data) setEvents(data);
     } catch (err) {
       console.error('Erro ao buscar eventos:', err);
-      // Fallback para visualização local se banco estiver inacessível
+      // Fallback local caso o banco esteja vazio ou inacessível
       if (events.length === 0) {
         setEvents([
           {
             id: '1',
-            title: 'Conferência de Mulheres 2024',
-            date: '25 Out',
-            time: '19:30',
-            location: 'Auditório Principal',
-            description: 'Um encontro especial de renovo e comunhão para todas as mulheres de nossa comunidade.',
-            image: 'https://picsum.photos/seed/event1/600/400'
+            title: 'Boas-vindas à 3IPI',
+            date: 'Todo Domingo',
+            time: '18:00',
+            location: 'Templo Sede',
+            description: 'Venha celebrar conosco em nossos cultos de domingo.',
+            image: 'https://picsum.photos/seed/church/600/400'
           }
         ]);
       }
@@ -123,7 +123,6 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
     try {
       let imageUrl = imagePreview || 'https://picsum.photos/seed/church/600/400';
 
-      // Upload de nova imagem se houver arquivo selecionado
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `capa-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
@@ -133,7 +132,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
           .from('midia')
           .upload(filePath, imageFile);
 
-        if (uploadError) throw new Error('Falha no upload da imagem. Verifique o bucket "midia".');
+        if (uploadError) throw new Error('Falha no upload da imagem.');
 
         const { data: { publicUrl } } = supabase.storage
           .from('midia')
@@ -144,29 +143,33 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
 
       const eventData = {
         title: newTitle,
-        date: newDate,
+        date: newDate, // O erro sugere que 'date' não existe na tabela
         time: newTime,
         location: newLocation,
         description: newDescription,
         image: imageUrl
       };
 
+      let response;
       if (isEditing && currentEventId) {
-        const { error } = await supabase
+        response = await supabase
           .from('eventos')
           .update(eventData)
           .eq('id', currentEventId);
-        if (error) throw error;
       } else {
-        const { error } = await supabase.from('eventos').insert([eventData]);
-        if (error) throw error;
+        response = await supabase.from('eventos').insert([eventData]);
+      }
+
+      if (response.error) {
+        console.error("Erro detalhado do Supabase:", response.error);
+        throw new Error(response.error.message);
       }
 
       setShowModal(false);
       resetForm();
       fetchEvents();
     } catch (err: any) {
-      alert(err.message || 'Erro inesperado ao salvar evento.');
+      alert('Erro ao salvar: ' + err.message + '\n\nCertifique-se que a coluna "date" existe na tabela "eventos".');
     } finally {
       setProcessing(false);
     }
@@ -212,7 +215,6 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
           {events.map((event) => (
             <div key={event.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden group hover:shadow-xl transition-all flex flex-col h-full relative">
               
-              {/* Controles Admin */}
               {isAdmin && (
                 <div className="absolute top-4 right-4 z-10 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
@@ -273,7 +275,6 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
         </div>
       )}
 
-      {/* Modal CRUD Evento */}
       {showModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-white/20">
