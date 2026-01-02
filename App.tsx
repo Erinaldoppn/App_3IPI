@@ -24,10 +24,21 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const initSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      if (session) await fetchOrCreateProfile(session.user.id, session.user.email);
-      setLoading(false);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        setSession(session);
+        
+        if (session) {
+          await fetchOrCreateProfile(session.user.id, session.user.email || '');
+        }
+      } catch (err) {
+        console.error("Erro ao inicializar sessão:", err);
+      } finally {
+        // Garante que o carregamento termine mesmo em caso de erro
+        setLoading(false);
+      }
     };
 
     initSession();
@@ -45,29 +56,33 @@ const App: React.FC = () => {
   }, []);
 
   const fetchOrCreateProfile = async (userId: string, email: string) => {
-    let { data, error } = await supabase
-      .from('perfis')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
-    if (error && (error.code === 'PGRST116' || error.message.includes('row'))) {
-      const { data: newData, error: insertError } = await supabase
+    try {
+      let { data, error } = await supabase
         .from('perfis')
-        .insert([{ 
-          id: userId, 
-          email: email, 
-          nome: email.split('@')[0], 
-          is_admin: false 
-        }])
-        .select()
+        .select('*')
+        .eq('id', userId)
         .single();
       
-      if (!insertError) data = newData;
-    }
-    
-    if (data) {
-      setProfile(data);
+      if (error && (error.code === 'PGRST116' || error.message.includes('row'))) {
+        const { data: newData, error: insertError } = await supabase
+          .from('perfis')
+          .insert([{ 
+            id: userId, 
+            email: email, 
+            nome: email.split('@')[0], 
+            is_admin: false 
+          }])
+          .select()
+          .single();
+        
+        if (!insertError) data = newData;
+      }
+      
+      if (data) {
+        setProfile(data);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar perfil:", err);
     }
   };
 
@@ -85,8 +100,9 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-white dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue"></div>
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mb-4"></div>
+        <p className="text-gray-500 dark:text-gray-400 font-medium animate-pulse">Conectando à 3IPI...</p>
       </div>
     );
   }
