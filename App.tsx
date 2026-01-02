@@ -13,20 +13,34 @@ import PrayerRequests from './pages/PrayerRequests';
 import AdminSettings from './pages/AdminSettings';
 import Layout from './components/Layout';
 import { Profile } from './types';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
 
   useEffect(() => {
+    // Fail-safe: se em 5 segundos não carregar, forçamos o encerramento do loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.warn("Tempo de conexão excedido. Forçando entrada.");
+        setLoading(false);
+      }
+    }, 5000);
+
     const initSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        const { data: { session }, error: authError } = await supabase.auth.getSession();
+        
+        if (authError) {
+          console.error("Erro na autenticação:", authError);
+          // Não lançamos erro aqui para permitir que o usuário veja a tela de login
+        }
         
         setSession(session);
         
@@ -34,10 +48,11 @@ const App: React.FC = () => {
           await fetchOrCreateProfile(session.user.id, session.user.email || '');
         }
       } catch (err) {
-        console.error("Erro ao inicializar sessão:", err);
+        console.error("Erro fatal ao inicializar sessão:", err);
+        setError("Não foi possível conectar ao servidor. Tente novamente em alguns instantes.");
       } finally {
-        // Garante que o carregamento termine mesmo em caso de erro
         setLoading(false);
+        clearTimeout(timeoutId);
       }
     };
 
@@ -52,7 +67,10 @@ const App: React.FC = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   const fetchOrCreateProfile = async (userId: string, email: string) => {
@@ -63,6 +81,7 @@ const App: React.FC = () => {
         .eq('id', userId)
         .single();
       
+      // Se o perfil não existir (PGRST116), tentamos criar
       if (error && (error.code === 'PGRST116' || error.message.includes('row'))) {
         const { data: newData, error: insertError } = await supabase
           .from('perfis')
@@ -82,7 +101,7 @@ const App: React.FC = () => {
         setProfile(data);
       }
     } catch (err) {
-      console.error("Erro ao carregar perfil:", err);
+      console.error("Erro ao carregar/criar perfil:", err);
     }
   };
 
@@ -100,9 +119,39 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mb-4"></div>
-        <p className="text-gray-500 dark:text-gray-400 font-medium animate-pulse">Conectando à 3IPI...</p>
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900 animate-in fade-in duration-700">
+        <div className="relative">
+          <div className="h-20 w-20 rounded-full border-4 border-gray-100 dark:border-gray-800 border-t-brand-blue animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <img 
+              src="https://raw.githubusercontent.com/lucide-react/lucide/main/icons/church.svg" 
+              className="w-8 h-8 opacity-20 dark:opacity-40" 
+              alt="loading"
+            />
+          </div>
+        </div>
+        <div className="mt-8 text-center px-4">
+          <p className="text-gray-900 dark:text-white font-bold text-lg">Conectando à 3IPI...</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Preparando sua experiência espiritual</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-6 text-center">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl border border-red-100 dark:border-red-900/30 max-w-sm">
+          <AlertCircle className="text-red-500 mx-auto mb-4" size={48} />
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Erro de Conexão</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full bg-brand-blue text-white py-3 rounded-xl font-bold shadow-lg shadow-brand-blue/20"
+          >
+            Tentar Novamente
+          </button>
+        </div>
       </div>
     );
   }
