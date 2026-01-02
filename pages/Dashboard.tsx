@@ -20,8 +20,8 @@ const Dashboard: React.FC = () => {
     setTimeout(() => setCopied(false), 3000);
   };
 
-  // Caminho oficial no seu Supabase
-  const flyerUrl = "https://luvdpnpnzotosndovtry.supabase.co/storage/v1/object/public/midia/pix-flyer-3ipi.png";
+  // URL corrigida para .jpeg conforme print do usuário
+  const flyerUrl = "https://luvdpnpnzotosndovtry.supabase.co/storage/v1/object/public/midia/pix-flyer-3ipi.jpeg";
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -85,7 +85,7 @@ const Dashboard: React.FC = () => {
                 <div className="text-center p-6 flex flex-col items-center">
                   <ImageOff size={48} className="text-gray-300 mb-2" />
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-tight">
-                    Flyer não encontrado.<br/>Upload necessário no bucket 'midia' como 'pix-flyer-3ipi.png'
+                    Flyer não encontrado.<br/>Verifique se o arquivo no bucket 'midia' é 'pix-flyer-3ipi.jpeg'
                   </p>
                 </div>
               )}

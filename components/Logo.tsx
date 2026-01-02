@@ -17,8 +17,8 @@ const Logo: React.FC<LogoProps> = ({ className = "", size = 'md', light = false 
     xl: 'h-40 w-40'
   };
 
-  // URL padronizada no bucket 'midia'
-  const logoUrl = "https://luvdpnpnzotosndovtry.supabase.co/storage/v1/object/public/midia/logo-3ipi.png";
+  // URL corrigida para .jpeg conforme print do usuário
+  const logoUrl = "https://luvdpnpnzotosndovtry.supabase.co/storage/v1/object/public/midia/logo-3ipi.jpeg";
 
   if (error) {
     return (
