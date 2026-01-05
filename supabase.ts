@@ -2,13 +2,11 @@
 import { createClient } from '@supabase/supabase-js';
 
 /* 
-  INSTRUÇÕES PARA RESOLVER ALERTAS E ERROS (Execute no SQL Editor):
+  COPIE E EXECUTE NO SQL EDITOR DO SUPABASE PARA CORREÇÃO TOTAL:
 
-  -- 1. CORREÇÃO DE COLUNA FALTANTE (Erro 42703):
-  -- Garante que a coluna 'date' exista na tabela de eventos
-  ALTER TABLE IF EXISTS public.eventos ADD COLUMN IF NOT EXISTS "date" TEXT;
+  -- 1. GARANTIR EXTENSÕES E ESTRUTURA
+  CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-  -- 2. ESTRUTURA COMPLETA DA TABELA EVENTOS:
   CREATE TABLE IF NOT EXISTS public.eventos (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
@@ -20,15 +18,30 @@ import { createClient } from '@supabase/supabase-js';
     created_at TIMESTAMPTZ DEFAULT now()
   );
 
-  -- 3. RESOLVER ERRO "gin_trgm_ops does not exist":
-  CREATE EXTENSION IF NOT EXISTS pg_trgm;
+  -- 2. CORREÇÃO DE SEGURANÇA (O motivo mais provável do erro ao salvar)
+  -- Habilita o RLS (Segurança de Linha)
+  ALTER TABLE public.eventos ENABLE ROW LEVEL SECURITY;
 
-  -- 4. OTIMIZAÇÃO DE PERFORMANCE (Índices):
-  CREATE INDEX IF NOT EXISTS idx_membros_nome_trgm ON public.membros USING gin (nome gin_trgm_ops);
-  CREATE INDEX IF NOT EXISTS idx_eventos_date ON public.eventos(date);
+  -- Remove políticas antigas se existirem para evitar conflitos
+  DROP POLICY IF EXISTS "Permitir leitura para todos" ON public.eventos;
+  DROP POLICY IF EXISTS "Permitir tudo para autenticados" ON public.eventos;
 
-  -- 5. CORREÇÃO DE SEGURANÇA (Alerta Laranja):
-  ALTER FUNCTION public.handle_new_user() SET search_path = public;
+  -- Criar política: Qualquer pessoa pode VER os eventos
+  CREATE POLICY "Permitir leitura para todos" ON public.eventos
+  FOR SELECT USING (true);
+
+  -- Criar política: Apenas usuários LOGADOS podem inserir/editar/excluir
+  CREATE POLICY "Permitir tudo para autenticados" ON public.eventos
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+  -- 3. GARANTIR QUE O ID SEJA GERADO AUTOMATICAMENTE (Se não foi na criação)
+  ALTER TABLE public.eventos ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
+  -- 4. PERMISSÕES PARA O BUCKET DE MÍDIA (Storage)
+  -- Garante que o bucket exista e aceite arquivos
+  INSERT INTO storage.buckets (id, name, public) 
+  VALUES ('midia', 'midia', true)
+  ON CONFLICT (id) DO NOTHING;
 */
 
 const supabaseUrl = 'https://luvdpnpnzotosndovtry.supabase.co';
