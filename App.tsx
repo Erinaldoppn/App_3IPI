@@ -14,7 +14,7 @@ import AdminSettings from './pages/AdminSettings';
 import Layout from './components/Layout';
 import Logo from './components/Logo';
 import { Profile } from './types';
-import { WifiOff, RefreshCw, ChevronRight } from 'lucide-react';
+import { WifiOff, RefreshCw } from 'lucide-react';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -27,20 +27,32 @@ const App: React.FC = () => {
     return localStorage.getItem('theme') === 'dark';
   });
 
-  const fetchOrCreateProfile = useCallback(async (userId: string, email: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
-      let { data, error } = await supabase.from('perfis').select('*').eq('id', userId).maybeSingle();
+      // Usamos .select().single() para ser mais rápido que o filtro genérico
+      const { data, error } = await supabase
+        .from('perfis')
+        .select('id, email, nome, is_admin')
+        .eq('id', userId)
+        .single();
       
-      if (!data && !error) {
-        const { data: newData, error: insertError } = await supabase.from('perfis').insert([{ 
-          id: userId, email: email, nome: email.split('@')[0], is_admin: false 
-        }]).select().single();
-        
-        if (newData) data = newData;
-        if (insertError) console.error("Erro ao criar perfil:", insertError);
+      if (error) {
+        // Se o perfil não existe, tentamos criar um básico (silenciosamente)
+        if (error.code === 'PGRST116') {
+          const { data: user } = await supabase.auth.getUser();
+          if (user.user) {
+            const { data: newProfile } = await supabase.from('perfis').insert([{ 
+              id: userId, 
+              email: user.user.email, 
+              nome: user.user.email?.split('@')[0] || 'Membro',
+              is_admin: false 
+            }]).select().single();
+            if (newProfile) setProfile(newProfile);
+          }
+        }
+      } else if (data) {
+        setProfile(data);
       }
-      
-      if (data) setProfile(data);
     } catch (err) { 
       console.error("Erro ao buscar perfil:", err); 
     }
@@ -63,26 +75,29 @@ const App: React.FC = () => {
       setSession(currentSession);
       
       if (currentSession) {
-        await fetchOrCreateProfile(currentSession.user.id, currentSession.user.email || '');
+        await fetchProfile(currentSession.user.id);
       }
       setLoading(false);
     } catch (err: any) {
       console.error("Erro na inicialização:", err);
-      setError("Não foi possível conectar ao servidor. O banco de dados pode estar em hibernação.");
+      // Só mostra erro se for falha de conexão real, não apenas sessão vazia
+      if (err.message !== 'Auth session missing') {
+        setError("Não foi possível conectar ao servidor.");
+      }
       setLoading(false);
     } finally {
       clearTimeout(slowTimer);
       clearTimeout(retryTimer);
     }
-  }, [fetchOrCreateProfile]);
+  }, [fetchProfile]);
 
   useEffect(() => {
     initSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       setSession(newSession);
       if (newSession) {
-        await fetchOrCreateProfile(newSession.user.id, newSession.user.email || '');
+        await fetchProfile(newSession.user.id);
       } else {
         setProfile(null);
       }
@@ -91,7 +106,7 @@ const App: React.FC = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [initSession, fetchOrCreateProfile]);
+  }, [initSession, fetchProfile]);
 
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add('dark');
@@ -102,46 +117,36 @@ const App: React.FC = () => {
   if (loading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900 transition-colors duration-500 overflow-hidden relative">
-        {/* Background Decorative Elements */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gray-100 dark:bg-gray-800">
           <div className="h-full bg-brand-blue animate-[loading_2s_ease-in-out_infinite] w-1/3"></div>
         </div>
 
         <div className="relative flex items-center justify-center mb-12">
           <div className="absolute h-40 w-40 rounded-full border-2 border-gray-100 dark:border-gray-800 border-t-brand-blue animate-spin duration-1000"></div>
-          <div className="absolute h-48 w-48 rounded-full border border-dashed border-gray-200 dark:border-gray-700 animate-[spin_10s_linear_infinite]"></div>
           <Logo size="lg" className="animate-pulse relative z-10" />
         </div>
 
         <div className="text-center space-y-6 max-w-xs animate-in fade-in zoom-in duration-700">
           <div className="space-y-1">
             <h2 className="text-gray-900 dark:text-white font-black text-2xl tracking-tighter uppercase">Igreja 3IPI</h2>
-            <p className="text-brand-blue text-[10px] font-black tracking-[0.3em] uppercase opacity-60">Igreja Conectada</p>
+            <p className="text-brand-blue text-[10px] font-black tracking-[0.3em] uppercase opacity-60">Sincronizando Dados</p>
           </div>
 
           <div className="flex flex-col items-center">
             <p className="text-gray-500 dark:text-gray-400 text-sm font-medium leading-relaxed">
               {slowConnection 
-                ? 'O servidor está acordando para você. Isso acontece após períodos de inatividade no plano gratuito.' 
-                : 'Preparando sua experiência na comunidade...'}
+                ? 'O servidor está otimizando a conexão para você...' 
+                : 'Iniciando ambiente seguro...'}
             </p>
             
-            {slowConnection && (
-              <div className="mt-4 flex flex-col items-center space-y-4">
-                <span className="px-4 py-1.5 bg-brand-blue/10 text-brand-blue text-[10px] font-black rounded-full animate-pulse border border-brand-blue/20">
-                  ESTABELECENDO CONEXÃO SEGURA
-                </span>
-                
-                {showRetry && (
-                  <button 
-                    onClick={() => window.location.reload()}
-                    className="flex items-center space-x-2 text-brand-blue hover:text-brand-darkBlue font-bold text-xs bg-white dark:bg-gray-800 shadow-xl px-6 py-3 rounded-2xl border border-gray-100 dark:border-gray-700 animate-in slide-in-from-bottom-2"
-                  >
-                    <RefreshCw size={14} />
-                    <span>Tentar Reconectar Agora</span>
-                  </button>
-                )}
-              </div>
+            {showRetry && (
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-6 flex items-center space-x-2 text-brand-blue font-bold text-xs bg-white dark:bg-gray-800 shadow-xl px-6 py-3 rounded-2xl border border-gray-100 dark:border-gray-700"
+              >
+                <RefreshCw size={14} />
+                <span>Recarregar Página</span>
+              </button>
             )}
           </div>
         </div>
@@ -163,13 +168,13 @@ const App: React.FC = () => {
           <div className="w-20 h-20 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <WifiOff className="text-red-500" size={40} />
           </div>
-          <h2 className="text-2xl font-black dark:text-white mb-3 tracking-tighter">Ops! Sem Resposta</h2>
+          <h2 className="text-2xl font-black dark:text-white mb-3 tracking-tighter">Erro de Conexão</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-8 text-sm leading-relaxed">
-            O banco de dados demorou muito para responder. Isso é comum quando ele está saindo do modo de hibernação.
+            Houve um problema ao conectar com o banco de dados. Por favor, tente novamente.
           </p>
           <button 
             onClick={() => window.location.reload()} 
-            className="w-full bg-brand-blue hover:bg-brand-darkBlue text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-blue/20 transition-all flex items-center justify-center space-x-2 active:scale-95"
+            className="w-full bg-brand-blue text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-blue/20 flex items-center justify-center space-x-2"
           >
             <RefreshCw size={18} />
             <span>Tentar Novamente</span>
