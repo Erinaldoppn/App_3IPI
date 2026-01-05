@@ -24,6 +24,7 @@ export interface PrayerRequest {
   nome_contato: string;
   telefone_contato: string;
   status: 'pendente' | 'atendido';
+  visualizado_em?: string | null;
   created_at: string;
 }
 
