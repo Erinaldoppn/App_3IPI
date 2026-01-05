@@ -26,6 +26,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentEventId, setCurrentEventId] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   // Form states
   const [newTitle, setNewTitle] = useState('');
@@ -54,7 +55,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
       if (data) setEvents(data);
     } catch (err) {
       console.error('Erro ao buscar eventos:', err);
-      // Fallback local caso o banco esteja vazio ou inacessível
+      // Fallback local apenas para visualização se falhar
       if (events.length === 0) {
         setEvents([
           {
@@ -120,6 +121,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
     if (!isAdmin) return;
 
     setProcessing(true);
+    setErrorMsg(null);
     try {
       let imageUrl = imagePreview || 'https://picsum.photos/seed/church/600/400';
 
@@ -143,7 +145,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
 
       const eventData = {
         title: newTitle,
-        date: newDate, // O erro sugere que 'date' não existe na tabela
+        date: newDate,
         time: newTime,
         location: newLocation,
         description: newDescription,
@@ -161,15 +163,17 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
       }
 
       if (response.error) {
-        console.error("Erro detalhado do Supabase:", response.error);
-        throw new Error(response.error.message);
+        throw response.error;
       }
 
       setShowModal(false);
       resetForm();
       fetchEvents();
     } catch (err: any) {
-      alert('Erro ao salvar: ' + err.message + '\n\nCertifique-se que a coluna "date" existe na tabela "eventos".');
+      console.error("Erro ao salvar evento:", err);
+      let message = "Erro ao salvar. Verifique se as colunas 'date' e 'title' existem na tabela.";
+      if (err.code === '42703') message = "Erro no Banco: A coluna 'date' não foi encontrada. Execute o script de correção no SQL Editor.";
+      setErrorMsg(message);
     } finally {
       setProcessing(false);
     }
@@ -184,6 +188,7 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
     setImageFile(null);
     setImagePreview(null);
     setCurrentEventId(null);
+    setErrorMsg(null);
   };
 
   return (
@@ -286,6 +291,13 @@ const Events: React.FC<EventsProps> = ({ isAdmin = false }) => {
             </div>
             
             <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto">
+              {errorMsg && (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start space-x-3 text-red-600 dark:text-red-400">
+                  <AlertTriangle className="shrink-0" size={20} />
+                  <p className="text-sm font-medium">{errorMsg}</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Título</label>
